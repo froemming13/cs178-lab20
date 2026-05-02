@@ -115,6 +115,12 @@ def build_bad_chart(df):
     )
     return apply_dark_theme(fig)
 
+def hex_to_rgba(hex_color, alpha=0.3):
+    hex_color = hex_color.lstrip("#")
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
 
 def build_good_chart(df, display_name, types):
     """
@@ -146,12 +152,34 @@ def build_good_chart(df, display_name, types):
     #           primary type is "fire" the color would be TYPE_COLORS["fire"].
     #           Use types[0] to always get the primary type dynamically.
 
-    good_fig = px.pie(
-        df,
-        names="stat",
-        values="value",
-        color="stat",
+    primary_color = TYPE_COLORS[types[0]]
+
+    stats  = df["stat"].tolist()
+    values = df["value"].tolist()
+    stats_closed  = stats  + [stats[0]]
+    values_closed = values + [values[0]]
+
+    good_fig = go.Figure()
+
+    good_fig.add_trace(go.Scatterpolar(
+        r=values_closed,
+        theta=stats_closed,
+        fill="toself",
+        fillcolor=hex_to_rgba(primary_color, 0.3),  # ← you'll change this
+        line=dict(color=primary_color),            # ← and this
+        name=display_name,
+    ))
+
+    good_fig.update_layout(
+        title=f"{display_name} — Base Stat Radar",
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 160],
+            )
+        ),
     )
+
 
 
     # ── END ────────────────────────────────────────────────────────────────────
@@ -168,13 +196,26 @@ def build_my_chart(df, display_name, types):
     Your chart should work well for any Pokémon, not just Charizard.
     """
     # ── Replace this placeholder with your own chart ───────────────────────────
-    fig = go.Figure()
-    fig.update_layout(
-        title="Your chart goes here — edit build_my_chart() in app.py",
-    )
-    # ── End of placeholder ─────────────────────────────────────────────────────
-    return apply_dark_theme(fig)
+    df_sorted = df.sort_values(by="value", ascending=True)
 
+    fig = px.bar(
+        df_sorted,
+        x="value",
+        y="stat",
+        orientation="h",
+        title=f"{display_name} — Stat Comparison",
+        color="value",  # numeric column = correct for viridis
+        color_continuous_scale=px.colors.sequential.Viridis
+    )
+
+    fig.update_layout(
+        xaxis_title="Value",
+        yaxis_title="Stat",
+        showlegend=False
+    )
+
+    return apply_dark_theme(fig)
+    # ── End of placeholder ─────────────────────────────────────────────────────
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
